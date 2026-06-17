@@ -1,145 +1,463 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>PaddleOCR.js</title>
+    <title>PaddleOCR.js 离线文本识别系统</title>
+    <!-- 引入 Outfit 优雅字体与 JetBrains Mono 代码字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
+      /* 全局变量和现代化色彩系统 */
       :root {
-        color-scheme: light dark;
-        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        --bg-gradient: linear-gradient(135deg, #090d1a 0%, #0d122b 50%, #171033 100%);
+        --panel-bg: rgba(22, 28, 45, 0.5);
+        --panel-border: rgba(255, 255, 255, 0.06);
+        --panel-border-hover: rgba(59, 130, 246, 0.25);
+        --text-primary: #f8fafc;
+        --text-secondary: #94a3b8;
+        --accent-blue: #3b82f6;
+        --accent-purple: #8b5cf6;
+        --btn-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        --btn-hover-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+        --status-green: #10b981;
+        --status-red: #ef4444;
+        --glow-blue: rgba(59, 130, 246, 0.3);
+        --font-sans: 'Outfit', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+        --font-mono: 'JetBrains Mono', monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
       }
 
       body {
-        margin: 0;
-        padding: 20px;
-        max-width: 1440px;
-        margin-inline: auto;
-        background: color-mix(in srgb, Canvas 96%, #2563eb 4%);
+        min-height: 100vh;
+        background: var(--bg-gradient);
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        padding: 40px 24px;
+        line-height: 1.5;
+        overflow-x: hidden;
+        position: relative;
       }
 
-      h1,
-      h2,
-      h3,
-      p {
-        margin: 0;
+      /* 装饰背景流光阴影 */
+      body::before {
+        content: '';
+        position: absolute;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+        top: -100px;
+        right: -100px;
+        z-index: -1;
+      }
+      body::after {
+        content: '';
+        position: absolute;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+        bottom: -150px;
+        left: -150px;
+        z-index: -1;
       }
 
       .layout {
+        max-width: 1360px;
+        margin: 0 auto;
         display: grid;
-        gap: 16px;
+        gap: 24px;
       }
 
+      /* 页面头部设计 */
       .hero {
-        display: grid;
-        gap: 8px;
+        text-align: center;
+        margin-bottom: 12px;
+        animation: fadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+
+      .hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        background: linear-gradient(to right, #60a5fa, #a78bfa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 8px;
+        display: inline-block;
       }
 
       .hero p {
-        max-width: 880px;
-        opacity: 0.78;
+        color: var(--text-secondary);
+        font-size: 1.05rem;
+        max-width: 600px;
+        margin: 0 auto;
+        font-weight: 300;
       }
 
+      /* 玻璃卡片通用样式 */
       .panel {
-        border: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
-        border-radius: 16px;
-        background: color-mix(in srgb, Canvas 93%, #fff 7%);
-        padding: 16px;
-        box-shadow: 0 10px 30px #00000010;
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 20px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 24px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+        position: relative;
+        overflow: hidden;
       }
 
+      .panel::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+      }
+
+      /* 参数控制网格 */
       .panel-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+        margin-bottom: 20px;
       }
 
-      label {
-        display: grid;
-        gap: 6px;
-        font-size: 14px;
+      .panel-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        color: var(--text-secondary);
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
       }
 
+      /* 统一输入框与下拉框样式 */
       input,
-      select,
-      button,
-      textarea {
-        border-radius: 10px;
-        border: 1px solid #6665;
-        padding: 9px 12px;
-        font: inherit;
-        background: color-mix(in srgb, Canvas 94%, #000 6%);
+      select {
+        width: 100%;
+        background: rgba(13, 18, 36, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 10px 14px;
+        color: var(--text-primary);
+        font-family: var(--font-sans);
+        font-size: 14px;
+        font-weight: 400;
+        outline: none;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
-      textarea {
-        min-height: 88px;
-        resize: vertical;
+      input:focus,
+      select:focus {
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.15), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      select {
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        background-size: 16px;
+        padding-right: 40px;
+        cursor: pointer;
+      }
+
+      /* 状态条 */
+      #status {
+        font-size: 14px;
+        font-weight: 500;
+        padding: 12px 18px;
+        border-radius: 14px;
+        background: rgba(16, 185, 129, 0.08);
+        border: 1px solid rgba(16, 185, 129, 0.15);
+        color: var(--status-green);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.03);
+        animation: fadeIn 0.4s ease;
+      }
+
+      /* 呼吸发光指示器 */
+      #status::before {
+        content: '';
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+        box-shadow: 0 0 8px currentColor;
+        animation: pulse 1.8s infinite alternate;
+      }
+
+      /* 按钮系统 */
+      .button-row {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
       button {
-        cursor: pointer;
-        background: color-mix(in srgb, Canvas 86%, #2563eb 14%);
-      }
-
-      .button-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      #status {
-        min-height: 1.4em;
-        padding: 10px 12px;
+        font-family: var(--font-sans);
+        font-weight: 600;
+        font-size: 14px;
+        padding: 11px 22px;
         border-radius: 12px;
-        border: 1px solid color-mix(in srgb, CanvasText 10%, transparent);
-        background: color-mix(in srgb, Canvas 94%, #22c55e 6%);
+        border: none;
+        cursor: pointer;
+        outline: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
+      /* 主操作按钮（Run OCR） */
+      #runBtn {
+        background: var(--btn-gradient);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+      }
+
+      #runBtn:hover:not(:disabled) {
+        background: var(--btn-hover-gradient);
+        transform: translateY(-1.5px);
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.45);
+      }
+
+      #runBtn:disabled {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgba(255, 255, 255, 0.2);
+        box-shadow: none;
+        cursor: not-allowed;
+      }
+
+      /* 次级操作按钮（Choose / Reinit） */
+      #chooseImageBtn,
+      #reinitializeBtn {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      #chooseImageBtn:hover,
+      #reinitializeBtn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1.5px);
+      }
+
+      #reinitializeBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      /* 主体左右内容布局 */
       .content-grid {
         display: grid;
-        grid-template-columns: minmax(0, 1.5fr) minmax(320px, 420px);
-        gap: 16px;
+        grid-template-columns: 1.4fr 1fr;
+        gap: 24px;
         align-items: start;
       }
 
-      canvas {
-        display: none;
+      .panel h2,
+      .panel h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        letter-spacing: -0.01em;
+        background: linear-gradient(to right, #fff 60%, var(--text-secondary));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      /* 可视化显示区样式 */
+      .visualization-container {
+        width: 100%;
+        min-height: 360px;
+        border-radius: 14px;
+        border: 2px dashed rgba(255, 255, 255, 0.06);
+        background: rgba(10, 15, 30, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        padding: 12px;
+      }
+
+      .visualization-container:hover {
+        border-color: var(--panel-border-hover);
       }
 
       img#vizImage {
-        width: 100%;
+        max-width: 100%;
+        max-height: 600px;
         height: auto;
+        object-fit: contain;
+        border-radius: 10px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
         display: block;
+        animation: scaleIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
       }
 
       img#vizImage[hidden] {
         display: none;
       }
 
-      pre,
-      code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      /* 缺省提示样式 */
+      .placeholder-tip {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        color: var(--text-secondary);
+        font-weight: 300;
       }
 
-      #metrics {
+      .placeholder-tip svg {
+        opacity: 0.4;
+      }
+
+      /* 右侧面板排版 */
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      /* 代码高亮控制台样式 */
+      pre#metrics {
+        background: rgba(10, 15, 30, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 16px;
+        font-family: var(--font-mono);
+        font-size: 13px;
+        color: #38bdf8;
+        line-height: 1.6;
         white-space: pre-wrap;
-        line-height: 1.55;
-        font-size: 13px;
+        box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
       }
 
-      #results {
-        margin: 0;
-        padding-left: 18px;
-        display: grid;
-        gap: 8px;
+      /* 结果列表排版 */
+      .results-wrapper {
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 4px;
       }
 
-      .muted {
-        opacity: 0.72;
-        font-size: 13px;
+      /* 自定义精美滚动条 */
+      .results-wrapper::-webkit-scrollbar {
+        width: 6px;
+      }
+      .results-wrapper::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .results-wrapper::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 3px;
+      }
+      .results-wrapper::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.2);
       }
 
-      @media (max-width: 980px) {
+      ol#results {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      ol#results li {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: #e2e8f0;
+        word-break: break-all;
+        position: relative;
+        padding-left: 28px;
+        animation: slideIn 0.3s ease forwards;
+      }
+
+      /* 结果项左侧小圆点修饰 */
+      ol#results li::before {
+        content: '';
+        position: absolute;
+        left: 14px;
+        top: 17px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent-purple);
+        box-shadow: 0 0 6px var(--accent-purple);
+      }
+
+      /* 动画效果定义 */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes scaleIn {
+        from {
+          opacity: 0;
+          transform: scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        from { opacity: 0.4; }
+        to { opacity: 1; }
+      }
+
+      @media (max-width: 992px) {
         .content-grid {
           grid-template-columns: 1fr;
         }
@@ -148,81 +466,144 @@
   </head>
   <body>
     <main class="layout">
+      <!-- 页面头部 -->
       <header class="hero">
         <h1>PaddleOCR.js</h1>
+        <p>基于 ONNX Runtime Web 的纯前端离线端侧 AI 文字识别引擎</p>
       </header>
 
+      <!-- 引擎控制与参数面板 -->
       <section class="panel">
         <div class="panel-grid">
           <label>
-            Model
+            OCR 预设模型
             <select id="modelPreset">
-              <option value="PP-OCRv5_mobile">PP-OCRv5_mobile</option>
-              <option value="PP-OCRv6_small">PP-OCRv6_small</option>
-              <option value="PP-OCRv6_tiny">PP-OCRv6_tiny</option>
+              <option value="PP-OCRv6_tiny">PP-OCRv6_tiny (极速轻量型 1.5M)</option>
+              <option value="PP-OCRv6_small">PP-OCRv6_small (高精度小型化)</option>
+              <option value="PP-OCRv5_mobile">PP-OCRv5_mobile (移动端预设版)</option>
             </select>
           </label>
           <label>
-            Runtime backend
+            推理加速后端
             <select id="runtimeBackend">
-              <option value="auto">auto</option>
-              <option value="webgpu">webgpu</option>
-              <option value="wasm">wasm</option>
+              <option value="auto">自动选择后端 (Auto)</option>
+              <option value="webgpu">WebGPU (硬件加速)</option>
+              <option value="wasm">WebAssembly (CPU多线程)</option>
             </select>
           </label>
           <label>
-            Detection threshold
-            <input id="detThresh" type="number" step="0.05" min="0" max="1" value="0.3" />
+            文本检测阈值
+            <input id="detThresh" type="number" step="0.05" min="0" max="1" />
           </label>
           <label>
-            Box threshold
-            <input id="boxThresh" type="number" step="0.05" min="0" max="1" value="0.6" />
+            边框过滤阈值
+            <input id="boxThresh" type="number" step="0.05" min="0" max="1" />
           </label>
           <label>
-            Unclip ratio
-            <input id="unclipRatio" type="number" step="0.1" min="0" value="1.5" />
+            边框膨胀比例
+            <input id="unclipRatio" type="number" step="0.1" min="0" />
           </label>
           <label>
-            Recognition threshold
-            <input id="recScoreThresh" type="number" step="0.05" min="0" max="1" value="0.1" />
+            文本识别阈值
+            <input id="recScoreThresh" type="number" step="0.05" min="0" max="1" />
           </label>
         </div>
-        <div class="button-row" style="margin-top: 12px">
+        <div class="button-row">
           <input id="imageInput" type="file" accept="image/*" hidden />
-          <button id="chooseImageBtn">Choose image</button>
-          <button id="reinitializeBtn">Reinitialize</button>
-          <button id="runBtn" disabled>Run OCR</button>
+          <button id="chooseImageBtn">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+              <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+            </svg>
+            选择图片
+          </button>
+          <button id="reinitializeBtn">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+              <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+            </svg>
+            重新初始化引擎
+          </button>
+          <button id="runBtn" disabled>
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+            </svg>
+            开始识别文字
+          </button>
         </div>
       </section>
 
-      <div id="status">Initializing...</div>
+      <!-- 当前状态条 -->
+      <div id="status">正在载入 OCR 引擎主程序...</div>
 
-      <section class="content-grid">
+      <!-- 可视化与数据网格 -->
+      <div class="content-grid">
+        <!-- 左侧：结果可视化 -->
         <section class="panel">
-          <div style="display: grid; gap: 10px">
-            <h2>Visualization</h2>
-            <img
-              id="vizImage"
-              alt="OCR visualization"
-              hidden
-              style="width: 100%; border-radius: 12px; border: 1px solid #6665; background: #0001"
-            />
+          <h2>
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="color:#60a5fa">
+              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+              <path d="M10.025 8a2.25 2.25 0 1 1-4.05 0 2.25 2.25 0 0 1 4.05 0z"/>
+            </svg>
+            识别结果可视化标注
+          </h2>
+          <div class="visualization-container">
+            <img id="vizImage" alt="标注可视化" hidden />
+            <div id="placeholderTip" class="placeholder-tip">
+              <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin='round' d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+              </svg>
+              <span>暂无图片，请选择测试图片上传</span>
+            </div>
           </div>
         </section>
 
-        <div style="display: grid; gap: 16px">
+        <!-- 右侧：指标与文本 -->
+        <div class="sidebar">
           <section class="panel">
-            <h3>Metrics</h3>
-            <pre id="metrics">No runs yet</pre>
+            <h3>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="color:#a78bfa">
+                <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8.5 4.5a.5.5 0 0 0-1 0v3h-3a.5.5 0 0 0 0 1h3v3a.5.5 0 0 0 1 0v-3h3a.5.5 0 0 0 0-1h-3v-3z"/>
+              </svg>
+              推理耗时统计与引擎指标
+            </h3>
+            <pre id="metrics">离线引擎暂未初始化或无运行指标</pre>
           </section>
+
           <section class="panel">
-            <h3>Recognition results</h3>
-            <ol id="results"></ol>
+            <h3>
+              <svg width="18" height="18" fill="currentColor" viewBox="0 0 16 16" style="color:#f472b6">
+                <path d="M12 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h8zM4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H4z"/>
+                <path d="M5 4h6v1H5V4zm0 2h6v1H5V6zm0 2h6v1H5V8zm0 2h4v1H5v-1z"/>
+              </svg>
+              文字识别明细
+            </h3>
+            <div class="results-wrapper">
+              <ol id="results">
+                <div class="placeholder-tip" style="padding: 20px 0; font-size: 13.5px;">
+                  暂无识别文字
+                </div>
+              </ol>
+            </div>
           </section>
         </div>
-      </section>
+      </div>
     </main>
 
     <script type="module" src="./src/main.ts"></script>
+    <script>
+      // 额外的交互补完：在有图片渲染时隐藏 placeholderTip 提示
+      const vizImage = document.getElementById('vizImage');
+      const placeholderTip = document.getElementById('placeholderTip');
+      const observer = new MutationObserver(() => {
+        if (!vizImage.hidden) {
+          placeholderTip.style.display = 'none';
+        } else {
+          placeholderTip.style.display = 'flex';
+        }
+      });
+      observer.observe(vizImage, { attributes: true, attributeFilter: ['hidden'] });
+    </script>
   </body>
 </html>
+

@@ -99,7 +99,7 @@ function renderResults(items: OcrResultItem[]): void {
   ui.results.innerHTML = "";
   items.forEach((item) => {
     const li = document.createElement("li");
-    li.textContent = `${item.text} | score=${item.score.toFixed(3)}`;
+    li.textContent = `${item.text} (置信度: ${item.score.toFixed(3)})`;
     ui.results.appendChild(li);
   });
 }
@@ -136,13 +136,13 @@ async function initializeOcrEngine(): Promise<void> {
   const summary = await state.ocr.initialize();
   state.ocrReady = true;
   ui.metrics.textContent = [
-    `model: ${preset}`,
-    `initialize: ${formatMs(summary.elapsedMs)}`,
-    `backend(requested): ${summary.backend}`,
-    `webgpu available: ${summary.webgpuAvailable ? "yes" : "no"}`,
-    `provider(det): ${summary.detProvider}`,
-    `provider(rec): ${summary.recProvider}`,
-    `assets: ${String(summary.assets.length)}`
+    `模型版本: ${preset}`,
+    `引擎初始化耗时: ${formatMs(summary.elapsedMs)}`,
+    `加速后端(请求): ${summary.backend}`,
+    `WebGPU 加速可用: ${summary.webgpuAvailable ? "✅ 是" : "❌ 否"}`,
+    `检测算子提供方: ${summary.detProvider}`,
+    `识别算子提供方: ${summary.recProvider}`,
+    `加载离线模型文件数: ${String(summary.assets.length)} 个`
   ].join("\n");
   updateRunButtonState();
 }
@@ -154,17 +154,17 @@ async function handleImageSelection(file: File | undefined): Promise<void> {
   state.previewBitmap = await createImageBitmap(file);
   showPreviewImage(state.previewBitmap);
   updateRunButtonState();
-  setStatus(`Image selected: ${file.name}`);
+  setStatus(`已选择图片: ${file.name}`);
 }
 
 async function runOcr(): Promise<void> {
   if (!state.ocrReady || !state.ocr || !state.imageFile) {
-    setStatus("Wait for OCR engine initialization to finish, then choose an image.", true);
+    setStatus("请先等待离线 OCR 引擎初始化完毕，然后选择一张图片。", true);
     return;
   }
 
   try {
-    setStatus("Running OCR...");
+    setStatus("正在识别中（纯前端端侧离线推理）...");
     const result: OcrResult = (
       await state.ocr.predict(state.imageFile, {
         textDetThresh: Number(ui.detThresh.value),
@@ -187,17 +187,18 @@ async function runOcr(): Promise<void> {
     ui.metrics.textContent = [
       ui.metrics.textContent,
       "",
-      `det: ${formatMs(result.metrics.detMs)}`,
-      `rec: ${formatMs(result.metrics.recMs)}`,
-      `total: ${formatMs(result.metrics.totalMs)}`,
-      `detected boxes: ${String(result.metrics.detectedBoxes)}`,
-      `recognized lines: ${String(result.metrics.recognizedCount)}`
+      `-----------------------------------------`,
+      `⚡ 文本检测耗时 (Det): ${formatMs(result.metrics.detMs)}`,
+      `⚡ 文本识别耗时 (Rec): ${formatMs(result.metrics.recMs)}`,
+      `⏱️ 本地识别总耗时: ${formatMs(result.metrics.totalMs)}`,
+      `🎯 检测到的文本区域: ${String(result.metrics.detectedBoxes)} 个`,
+      `📝 成功提取文本行数: ${String(result.metrics.recognizedCount)} 行`
     ].join("\n");
-    setStatus(`OCR complete: ${String(result.metrics.recognizedCount)} text lines recognized.`);
+    setStatus(`识别成功！成功解析了 ${String(result.metrics.recognizedCount)} 行文本。`);
   } catch (err: unknown) {
     console.error(err);
     const message = err instanceof Error ? err.message : String(err);
-    setStatus(`OCR failed: ${message}`, true);
+    setStatus(`识别失败: ${message}`, true);
   }
 }
 
@@ -216,25 +217,25 @@ async function initialize(): Promise<void> {
     state.ocrReady = false;
     updateRunButtonState();
 
-    setStatus("Initializing...");
+    setStatus("正在初始化 OCR 推理环境...");
     await initializeOcrEngine();
 
-    setStatus("Loading visualization font...");
+    setStatus("正在加载可视化中文字体...");
     try {
       await visualizer.loadFont();
     } catch (fontErr: unknown) {
-      console.warn("Font load failed, using system font:", fontErr);
-      setStatus("Ready (visualization will use system font).");
+      console.warn("中文字体加载失败，将退回系统默认字体:", fontErr);
+      setStatus("就绪（标注可视化将采用系统默认字体）。");
       updateRunButtonState();
       return;
     }
 
-    setStatus("Ready.");
+    setStatus("离线 OCR 推理引擎就绪，请选择测试图片。");
     updateRunButtonState();
   } catch (err: unknown) {
     console.error(err);
     const message = err instanceof Error ? err.message : String(err);
-    setStatus(`Initialization failed: ${message}`, true);
+    setStatus(`初始化失败: ${message}`, true);
     state.ocrReady = false;
     updateRunButtonState();
   } finally {
