@@ -2,6 +2,11 @@
 
 基于百度官方最新的 `@paddleocr/paddleocr-js`（ONNX Runtime Web 驱动）实现的 **100% 纯前端离线 OCR 识别 Demo**。
 
+## 🖥️ 界面预览
+![项目界面预览](public/screenshot.jpg)
+
+---
+
 该项目专为 **零外网依赖、开箱即用、一键分发** 的场景设计。完全解决了 Vite 开发环境下 WASM 胶水代码的 Transform 拦截报错以及浏览器多线程跨域安全限制（COOP/COEP）问题，且**无需物理修改任何 `node_modules` 依赖包**。
 
 ---
