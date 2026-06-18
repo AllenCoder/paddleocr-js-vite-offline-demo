@@ -9,7 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@paddleocr/paddleocr-js": "file:../Downloads/PaddleOCR-main/paddleocr-js/packages/core",
+    "@paddleocr/paddleocr-js": "file:./libs/paddleocr-paddleocr-js-0.4.2.tgz",
     "onnxruntime-web": "1.22.0",
     "ppu-paddle-ocr": "^5.8.3"
   },
