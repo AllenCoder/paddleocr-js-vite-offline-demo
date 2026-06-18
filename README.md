@@ -51,8 +51,8 @@ paddleocr-js-vite-offline-demo/
 # 进入项目目录
 cd paddleocr-js-vite-offline-demo
 
-# 安装依赖项
-npm install
+# 安装依赖项（推荐使用 --legacy-peer-deps 选项避免 peerDependency 冲突）
+npm install --legacy-peer-deps
 ```
 
 ### 3. 本地开发调试
